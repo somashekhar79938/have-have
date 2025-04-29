@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAVE HAVE - Stream Movies & TV Shows</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --accent: #e50914;
+            --text: #ffffff;
+            --glass: rgba(26, 26, 26, 0.95);
+            --radius: 10px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: var(--primary);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .header {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            padding: 1.2rem 4%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--accent), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+        .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+        }
+        .nav-link.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        .search-container {
+            position: relative;
+            flex: 0 1 400px;
+            margin: 0 2rem;
+        }
+        .search-input {
+            width: 100%;
+            padding: 0.8rem 2rem 0.8rem 1.2rem;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .search-input:focus {
+            outline: none;
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        .search-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .search-icon:hover {
+            color: var(--accent);
+        }
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem 4%;
+        }
+        .hero {
+            height: 65vh;
+            background: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+                        url('https://image.tmdb.org/t/p/w1280/9yBVqNruk6Ykrwc32qrK2TIE5xw.jpg');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: flex-end;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .hero-info {
+            background: var(--glass);
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius);
+            max-width: 500px;
+            backdrop-filter: blur(15px);
+        }
+        .trending-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .media-card {
+            background: var(--glass);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        .media-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+        .poster {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+        .card-content {
+            padding: 1rem;
+        }
+        .card-content h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        .media-type {
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-top: 0.5rem;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: var(--glass);
+            padding: 2rem;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(15px);
+            position: relative;
+        }
+        .player-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            position: relative;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .player-iframe {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .search-results-header {
+            margin: 2rem 0;
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+        .no-results {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin: 2rem 0;
+        }
+        /* Fullscreen player styles */
+        .fullscreen-player {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 3000;
+            display: none;
+        }
+        .fullscreen-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 3001;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .back-button:hover {
+            background: var(--accent);
+            transform: scale(1.1);
+        }
+        .provider-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 3001;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .provider-switch:hover {
+            background: var(--accent);
+        }
+        @media (max-width: 768px) {
+            .header {
+                flex-wrap: wrap;
+                padding: 1rem 2%;
+            }
+            .search-container {
+                order: 3;
+                flex: 1 1 100%;
+                margin: 1rem 0 0 0;
+            }
+            .nav-links {
+                gap: 1.5rem;
+            }
+            .logo {
+                font-size: 1.5rem;
+            }
+            .main-content {
+                padding: 1rem 2%;
+                margin-top: 70px;
+            }
+            .hero {
+                height: 45vh;
+                padding: 1rem;
+            }
+            .hero-info {
+                padding: 1rem;
+            }
+            .trending-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
+            .poster {
+                height: 225px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .media-card:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+        /* Landscape orientation styles */
+        @media screen and (orientation: landscape) {
+            .modal-content {
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
+                padding: 0;
+            }
+            .player-container {
+                width: 100%;
+                height: 100%;
+                aspect-ratio: unset;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">HAVE HAVE</div>
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search movies and TV shows..." autocomplete="off">
+            <i class="search-icon">🔍</i>
+        </div>
+        <nav class="nav-links">
+            <a href="#" class="nav-link active" data-content="home">Home</a>
+            <a href="#" class="nav-link" data-content="movies">Movies</a>
+            <a href="#" class="nav-link" data-content="tv">TV Shows</a>
+        </nav>
+    </header>
+    <main class="main-content" id="main-content">
+        <div class="loading">Loading...</div>
+    </main>
+    <div class="modal" id="playerModal">
+        <div class="modal-content">
+            <div class="player-container">
+                <iframe class="player-iframe" id="playerFrame" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+    <!-- Fullscreen player container -->
+    <div class="fullscreen-player" id="fullscreenPlayer">
+        <button class="back-button" id="backButton">←</button>
+        <button class="provider-switch" id="providerSwitch">Switch Provider</button>
+        <iframe class="fullscreen-iframe" id="fullscreenFrame" allowfullscreen></iframe>
+    </div>
+
+    <script>
+        // Cache DOM elements
+        const $mainContent = $('#main-content');
+        const $searchInput = $('#searchInput');
+        const $playerModal = $('#playerModal');
+        const $fullscreenPlayer = $('#fullscreenPlayer');
+        const $playerFrame = $('#playerFrame');
+        const $fullscreenFrame = $('#fullscreenFrame');
+        const $backButton = $('#backButton');
+        const $providerSwitch = $('#providerSwitch');
+        const $navLinks = $('.nav-link');
+
+        // Configuration
+        const API_KEY = '5622cafbfe8f8cfe358a29c53e19bba0';
+        const defaultProviders = [
+            {
+                base: "player.videasy.net",
+                movie: "https://%b/movie/%i",
+                tv: "https://%b/tv/%i/%s/%e"
+            },
+            {
+                base: "vidsrc.me",
+                movie: "https://%b/embed/movie/%i",
+                tv: "https://%b/embed/tv/%i/%s/%e"
+            }
+        ];
+        
+        // State management
+        const state = {
+            currentProvider: 0,
+            searchTimeout: null,
+            lastQuery: '',
+            isLoading: false,
+            currentMedia: { id: null, type: null },
+            cache: new Map()
+        };
+
+        // FastFetch implementation with caching
+        async function fastFetch(url) {
+            // Check cache first
+            if (state.cache.has(url)) {
+                return state.cache.get(url);
+            }
+
+            // If not in cache, fetch and store
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                state.cache.set(url, data);
+                return data;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // Debounced search function
+        function debounce(func, wait) {
+            return function() {
+                const context = this, args = arguments;
+                clearTimeout(state.searchTimeout);
+                state.searchTimeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+        // Load content with jQuery optimizations
+        async function loadContent(type, reset = true) {
+            if(state.isLoading) return;
+            state.isLoading = true;
+            
+            reset && $mainContent.html('<div class="loading">Loading...</div>');
+            
+            try {
+                const url = type === 'home' 
+                    ? `https://api.tmdb.org/3/trending/all/week?api_key=${API_KEY}`
+                    : `https://api.tmdb.org/3/discover/${type}?api_key=${API_KEY}&sort_by=popularity.desc`;
+                    
+                const data = await fastFetch(url);
+                renderContent(data.results, type === 'home' ? 'Trending Now' : `Popular ${type === 'movies' ? 'Movies' : 'TV Shows'}`);
+            } catch (error) {
+                $mainContent.html('<div class="error">Failed to load content. Check your connection.</div>');
+                console.error('Error loading content:', error);
+            } finally {
+                state.isLoading = false;
+            }
+        }
+
+        // Optimized content rendering with jQuery
+        function renderContent(items, title) {
+            const mediaCards = items.map(item => `
+                <div class="media-card" data-id="${item.id}" data-type="${item.media_type || 'movie'}">
+                    <img class="poster" src="${item.poster_path 
+                        ? `https://image.tmdb.org/t/p/w342${item.poster_path}` 
+                        : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 342 513"%3E%3Crect width="342" height="513" fill="%232a2a2a"%3E%3C/rect%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="24" fill="%23666" text-anchor="middle" dy=".3em"%3ENo Poster%3C/text%3E%3C/svg%3E'}" 
+                        alt="${item.title || item.name}" loading="lazy">
+                    <div class="card-content">
+                        <h3>${item.title || item.name}</h3>
+                        <p>⭐ ${item.vote_average?.toFixed(1) || 'N/A'}</p>
+                        ${item.media_type ? `<p class="media-type">${item.media_type === 'movie' ? '🎬 Movie' : '📺 TV Show'}</p>` : ''}
+                    </div>
+                </div>`).join('');
+
+            $mainContent.html(`
+                <section class="hero">
+                    <div class="hero-info">
+                        <h1>${title}</h1>
+                        <p>Explore the best in entertainment</p>
+                    </div>
+                </section>
+                <div class="trending-grid">${mediaCards}</div>
+            `);
+
+            // Delegate click events for better performance
+            $mainContent.off('click', '.media-card').on('click', '.media-card', function() {
+                showDetails($(this).data('id'), $(this).data('type'));
+            });
+        }
+
+        // Optimized search function
+        const searchContent = debounce(async function(query) {
+            if (query === state.lastQuery) return;
+            state.lastQuery = query;
+            
+            if (!query) {
+                loadContent('home');
+                return;
+            }
+            
+            $mainContent.html('<div class="loading">Searching...</div>');
+            
+            try {
+                const data = await fastFetch(
+                    `https://api.tmdb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
+                );
+                const filtered = data.results.filter(item => ['movie', 'tv'].includes(item.media_type));
+                
+                if (filtered.length === 0) {
+                    $mainContent.html(`
+                        <h2 class="search-results-header">Results for "${query}"</h2>
+                        <p class="no-results">No results found</p>
+                    `);
+                    return;
+                }
+                
+                renderContent(filtered, `Results for "${query}"`);
+            } catch (error) {
+                $mainContent.html('<div class="error">Search failed. Check your connection.</div>');
+                console.error('Search error:', error);
+            }
+        }, 300);
+
+        // Show details with provider switching
+        async function showDetails(id, type) {
+            state.currentMedia = { id, type };
+            
+            try {
+                const provider = defaultProviders[state.currentProvider];
+                const url = type === 'movie' 
+                    ? provider.movie.replace('%b', provider.base).replace('%i', id) 
+                    : provider.tv.replace('%b', provider.base).replace('%i', id).replace('%s', 1).replace('%e', 1);
+                
+                // Load in both players
+                $playerFrame.attr('src', url);
+                $fullscreenFrame.attr('src', url);
+                
+                // Check if landscape mode
+                if (window.matchMedia("(orientation: landscape)").matches) {
+                    $fullscreenPlayer.show();
+                } else {
+                    $playerModal.css('display', 'flex');
+                }
+            } catch (error) {
+                alert('Failed to load player. Try another provider.');
+                console.error('Player error:', error);
+            }
+        }
+
+        // Switch provider function
+        function switchProvider() {
+            state.currentProvider = (state.currentProvider + 1) % defaultProviders.length;
+            if (state.currentMedia.id) {
+                showDetails(state.currentMedia.id, state.currentMedia.type);
+            }
+        }
+
+        // Exit player function
+        function exitPlayer() {
+            $playerModal.hide();
+            $fullscreenPlayer.hide();
+            $playerFrame.attr('src', '');
+            $fullscreenFrame.attr('src', '');
+        }
+
+        // Event listeners with jQuery
+        $(document).ready(function() {
+            // Search input handler
+            $searchInput.on('input', function() {
+                searchContent($(this).val().trim());
+            });
+
+            // Modal close handlers
+            $playerModal.on('click', exitPlayer);
+            $backButton.on('click', exitPlayer);
+            $providerSwitch.on('click', switchProvider);
+
+            // Navigation link handlers
+            $navLinks.on('click', function(e) {
+                e.preventDefault();
+                $navLinks.removeClass('active');
+                $(this).addClass('active');
+                loadContent($(this).data('content'));
+            });
+
+            // Handle orientation changes
+            $(window).on('orientationchange', function() {
+                if (window.matchMedia("(orientation: landscape)").matches) {
+                    if ($playerModal.css('display') === 'flex') {
+                        $playerModal.hide();
+                        $fullscreenPlayer.show();
+                    }
+                } else {
+                    if ($fullscreenPlayer.is(':visible')) {
+                        $fullscreenPlayer.hide();
+                        $playerModal.css('display', 'flex');
+                    }
+                }
+            });
+
+            // Initial load
+            loadContent('home');
+        });
+    </script>
+</body>
+</html>
